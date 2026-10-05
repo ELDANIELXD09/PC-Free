@@ -124,41 +124,13 @@ docker info
 
 Asegúrate de que `Docker Root Dir` sea `/tmp/docker-data`.
 
+Los datos persistentes de Windows se guardan en `windows-data/` dentro del espacio de trabajo del Codespace, no bajo `/tmp` ni en un volumen de Docker que pueda desaparecer al reconstruir Docker. No borres esa carpeta: contiene el disco virtual de Windows y también consume almacenamiento del Codespace.
+
 ---
 
 ## 🧱 Archivo `windows10.yml`
 
-```yaml
-# Antes de ejecutar docker-compose up, ejecuta:
-# bash check_github_follow.sh || exit 1
-# Si no sigues a https://github.com/jephersonRD, el entorno no se iniciará.
-services:
-  windows:
-    image: dockurr/windows
-    container_name: windows
-    environment:
-      VERSION: "10"
-      USERNAME: ${WINDOWS_USERNAME}
-      PASSWORD: ${WINDOWS_PASSWORD}
-      RAM_SIZE: "10G"
-      CPU_CORES: "4"
-    cap_add:
-      - NET_ADMIN
-    ports:
-      - "8006:8006"
-      - "3389:3389/tcp"
-    volumes:
-      - /tmp/docker-data:/mnt/disco1
-      - windows-data:/mnt/windows-data
-    devices:
-      - "/dev/kvm:/dev/kvm"
-      - "/dev/net/tun:/dev/net/tun"
-    stop_grace_period: 2m
-    restart: always
-
-volumes:
-  windows-data:
-```
+El archivo está en [`windows10.yml`](./windows10.yml). La carpeta `windows-data/` se monta en `/storage`, que es la ruta de almacenamiento que usa `dockurr/windows`, y mantiene el mismo disco al recrear el contenedor o reiniciar el Codespace. No borres esa carpeta; el disco virtual puede crecer hasta 64 GB y consume la cuota de almacenamiento del Codespace. La configuración pide 4 GB de RAM y 2 CPU; Codespaces debe tener memoria suficiente además de la que usa el entorno. Usa `passt` con la red del host para que Windows pueda salir a Internet desde Codespaces; la consola web queda en el puerto 8006 y RDP se reenvía en el 3389. Al compartir la red del host, los puertos se enlazan directamente en el entorno en lugar de usar `ports:` de Compose. Las credenciales se requieren desde `.env`; Compose se detendrá con un error claro si faltan.
 
 ---
 
@@ -182,9 +154,14 @@ echo ".env" >> .gitignore
 
 ### Iniciar por primera vez
 
+El control previo consulta si la cuenta autenticada en GitHub CLI sigue a `jephersonRD`. Autentícate con `gh auth login` y ejecuta el script antes de iniciar:
+
 ```bash
+bash check_github_follow.sh || exit 1
 docker-compose -f windows10.yml up
 ```
+
+En una instalación nueva, `oem/install.bat` programa la instalación de Discord, Roblox, Roblox Studio y Steam en el primer inicio de sesión de Windows. Se descargan desde sus distribuidores oficiales; pueden tardar varios minutos en aparecer. La carpeta persistente `windows-data/` conserva las aplicaciones al reiniciar. Si la instalación falla, revisa el registro en `%LOCALAPPDATA%\PC-Free\app-install.log` y el aviso que queda en el escritorio.
 
 ### 🔌 Apagar la PC
 
@@ -220,6 +197,7 @@ docker stop windows
 Start the Windows container:
 
 ```bash
+bash check_github_follow.sh || exit 1
 docker-compose -f windows10.yml up -d
 ```
 

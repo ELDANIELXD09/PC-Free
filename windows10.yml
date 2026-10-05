@@ -1,0 +1,24 @@
+services:
+  windows:
+    image: dockurr/windows
+    container_name: windows
+    environment:
+      VERSION: "10"
+      USERNAME: ${WINDOWS_USERNAME:?Set WINDOWS_USERNAME in .env}
+      PASSWORD: ${WINDOWS_PASSWORD:?Set WINDOWS_PASSWORD in .env}
+      RAM_SIZE: "4G"
+      CPU_CORES: "2"
+      NETWORK: "passt"
+      DEV: "lo"
+      IP: "10.0.2.100"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./windows-data:/storage
+      - ./oem:/oem:ro
+    devices:
+      - "/dev/kvm:/dev/kvm"
+      - "/dev/net/tun:/dev/net/tun"
+    stop_grace_period: 2m
+    restart: always
